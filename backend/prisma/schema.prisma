@@ -108,7 +108,7 @@ model BOMLine {
 }
 
 model SalesOrderLine {
-  salesOrderLineId Int        @id @map("sales_order_line_id")
+  salesOrderLineId Int        @id @default(autoincrement()) @map("sales_order_line_id")
   salesOrderId     String     @map("sales_order_id")
   productId        Int        @map("product_id")
   quantity         Int
