@@ -97,7 +97,7 @@ model BOMHeader {
 }
 
 model BOMLine {
-  bomLineId        Int       @id @map("bom_line_id")
+  bomLineId        Int       @id @default(autoincrement()) @map("bom_line_id")
   bomId            String    @map("bom_id")
   materialId       Int       @map("material_id")
   quantityRequired Float     @map("quantity_required")

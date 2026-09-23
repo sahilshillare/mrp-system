@@ -1,16 +1,16 @@
 const express = require("express");
 
 const {
-  getAllBoms,
+  getBomsByFinishedGoods,
   getBomById,
   createBom,
   updateBom,
   deleteBom,
-} = require("./bom.controller");
+} = require("../controllers/bom.controller");
 
 const router = express.Router();
 
-router.get("/boms", getAllBoms);
+router.post("/boms/finished-goods", getBomsByFinishedGoods);
 
 router.get("/boms/:id", getBomById);
 
