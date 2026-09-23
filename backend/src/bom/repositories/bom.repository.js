@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma");
+const prisma = require("../../lib/prisma");
 
 const bomInclude = {
   finishedGood: true,
@@ -9,11 +9,27 @@ const bomInclude = {
   },
 };
 
+const mrpBomInclude = {
+  bomLines: {
+    select: {
+      materialId: true,
+      quantityRequired: true,
+    },
+  },
+};
+
 // =============================
-// GET ALL BOMS
+// GET ALL BOMS BY FINISHED GOODS
 // =============================
-async function getAllBoms() {
-  return prisma.bOMHeader.findMany();
+async function getBomsByFinishedGoods(finishedGoodIds) {
+  return prisma.bOMHeader.findMany({
+    where: {
+      finishedGoodId: {
+        in: finishedGoodIds,
+      },
+    },
+    include: mrpBomInclude,
+  });
 }
 
 // =============================
@@ -24,7 +40,36 @@ async function getBomById(id) {
     where: {
       bomId: id,
     },
-    include: bomInclude,
+    select: {
+      bomId: true,
+      finishedGoodId: true,
+
+      finishedGood: {
+        select: {
+          itemId: true,
+          itemCode: true,
+          itemName: true,
+          uom: true,
+        },
+      },
+
+      bomLines: {
+        select: {
+          bomLineId: true,
+          materialId: true,
+          quantityRequired: true,
+
+          material: {
+            select: {
+              itemId: true,
+              itemCode: true,
+              itemName: true,
+              uom: true,
+            },
+          },
+        },
+      },
+    },
   });
 }
 
@@ -65,6 +110,7 @@ async function getNextBomLineId(tx) {
 // =============================
 async function createBom(data) {
   return prisma.$transaction(async (tx) => {
+
     const bom = await tx.bOMHeader.create({
       data: {
         bomId: data.bomId,
@@ -72,19 +118,14 @@ async function createBom(data) {
       },
     });
 
-    let nextLineId = await getNextBomLineId(tx);
-
     for (const line of data.lines) {
       await tx.bOMLine.create({
         data: {
-          bomLineId: nextLineId,
           bomId: bom.bomId,
           materialId: line.materialId,
           quantityRequired: line.quantityRequired,
         },
       });
-
-      nextLineId++;
     }
 
     return tx.bOMHeader.findUnique({
@@ -104,38 +145,30 @@ async function createBom(data) {
 // =============================
 async function updateBom(id, data) {
   return prisma.$transaction(async (tx) => {
-    if (data.finishedGoodId !== undefined) {
-      await tx.bOMHeader.update({
-        where: {
-          bomId: id,
-        },
+
+    await tx.bOMHeader.update({
+      where: {
+        bomId: id,
+      },
+      data: {
+        finishedGoodId: data.finishedGoodId,
+      },
+    });
+
+    await tx.bOMLine.deleteMany({
+      where: {
+        bomId: id,
+      },
+    });
+
+    for (const line of data.lines) {
+      await tx.bOMLine.create({
         data: {
-          finishedGoodId: data.finishedGoodId,
-        },
-      });
-    }
-
-    if (data.lines !== undefined) {
-      await tx.bOMLine.deleteMany({
-        where: {
           bomId: id,
+          materialId: line.materialId,
+          quantityRequired: line.quantityRequired,
         },
       });
-
-      let nextLineId = await getNextBomLineId(tx);
-
-      for (const line of data.lines) {
-        await tx.bOMLine.create({
-          data: {
-            bomLineId: nextLineId,
-            bomId: id,
-            materialId: line.materialId,
-            quantityRequired: line.quantityRequired,
-          },
-        });
-
-        nextLineId++;
-      }
     }
 
     return tx.bOMHeader.findUnique({
@@ -154,6 +187,7 @@ async function updateBom(id, data) {
 // =============================
 async function deleteBom(id) {
   return prisma.$transaction(async (tx) => {
+
     await tx.bOMLine.deleteMany({
       where: {
         bomId: id,
@@ -169,7 +203,7 @@ async function deleteBom(id) {
 }
 
 module.exports = {
-  getAllBoms,
+  getBomsByFinishedGoods,
   getBomById,
   getItemById,
   createBom,

@@ -1,4 +1,4 @@
-const bomRoutes = require("./bom.routes");
+const bomRoutes = require("./routes/bom.routes");
  
 console.log("BOM module loaded");
  

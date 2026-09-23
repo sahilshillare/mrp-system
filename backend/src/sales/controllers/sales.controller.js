@@ -1,17 +1,19 @@
-const salesService = require("./sales.service");
+const salesService = require("../services/sales.service");
 
 const {
   validateSalesOrderId,
   validateCreateSalesOrder,
   validateUpdateSalesOrder,
-} = require("./sales.validation");
+} = require("../sales.validation");
 
 // ======================================
 // GET ALL SALES ORDERS
 // ======================================
 async function getAllSalesOrders(req, res) {
   try {
-    const orders = await salesService.getAllSalesOrders();
+    const orders = await salesService.getAllSalesOrders(
+      req.query.status
+    );
 
     return res.status(200).json(orders);
 

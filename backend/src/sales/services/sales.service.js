@@ -1,10 +1,10 @@
-const salesRepository = require("./sales.repository");
+const salesRepository = require("../repositories/sales.repository");
 
 // =============================
 // GET ALL SALES ORDERS
 // =============================
-async function getAllSalesOrders() {
-  return salesRepository.getAllSalesOrders();
+async function getAllSalesOrders(status) {
+  return salesRepository.getAllSalesOrders(status);
 }
 
 // =============================
@@ -20,7 +20,9 @@ async function getSalesOrderById(id) {
 async function createSalesOrder(data) {
 
   // Check customer exists
-  const customer = await salesRepository.getCustomerById(data.customerId);
+  const customer = await salesRepository.getCustomerById(
+    data.customerId
+  );
 
   if (!customer) {
     const error = new Error("Customer not found");
@@ -37,6 +39,21 @@ async function createSalesOrder(data) {
     const error = new Error("Sales Order already exists");
     error.status = 409;
     throw error;
+  }
+
+  // Check products exist
+  for (const line of data.lines) {
+    const product = await salesRepository.getItemById(
+      line.productId
+    );
+
+    if (!product) {
+      const error = new Error(
+        `Product not found: ${line.productId}`
+      );
+      error.status = 404;
+      throw error;
+    }
   }
 
   return salesRepository.createSalesOrder(data);
@@ -56,15 +73,27 @@ async function updateSalesOrder(id, data) {
     throw error;
   }
 
-  // If customerId is updated, verify customer exists
-  if (data.customerId) {
+  // Verify customer exists
+  const customer = await salesRepository.getCustomerById(
+    data.customerId
+  );
 
-    const customer = await salesRepository.getCustomerById(
-      data.customerId
+  if (!customer) {
+    const error = new Error("Customer not found");
+    error.status = 404;
+    throw error;
+  }
+
+  // Verify every product exists
+  for (const line of data.lines) {
+    const product = await salesRepository.getItemById(
+      line.productId
     );
 
-    if (!customer) {
-      const error = new Error("Customer not found");
+    if (!product) {
+      const error = new Error(
+        `Product not found: ${line.productId}`
+      );
       error.status = 404;
       throw error;
     }

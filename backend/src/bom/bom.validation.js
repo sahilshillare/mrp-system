@@ -1,5 +1,40 @@
 // src/bom/bom.validation.js
 
+
+// =============================
+// Validate Finished Good IDs
+// Used by POST /boms/finished-goods
+// =============================
+
+function validateFinishedGoodIds(body) {
+  if (!body) {
+    return "Request body is required.";
+  }
+
+  if (!body.finishedGoodIds) {
+    return "Finished Good IDs are required.";
+  }
+
+  if (!Array.isArray(body.finishedGoodIds)) {
+    return "Finished Good IDs must be an array.";
+  }
+
+  if (body.finishedGoodIds.length === 0) {
+    return "At least one Finished Good ID is required.";
+  }
+
+  for (const id of body.finishedGoodIds) {
+    if (!Number.isInteger(id)) {
+      return "Each Finished Good ID must be an integer.";
+    }
+  }
+
+  return null;
+}
+
+
+
+
 // =============================
 // Validate BOM ID
 // Used by GET BY ID, PUT, DELETE
@@ -85,9 +120,9 @@ function validateBomLines(lines) {
   return null;
 }
 
-// =============================
-// Validate POST Request
-// =============================
+// =============================================
+// Validate POST Request for creating BOM
+// =============================================
 function validateCreateBom(body) {
   if (!body) {
     return "Request body is required.";
@@ -95,7 +130,6 @@ function validateCreateBom(body) {
 
   const { bomId, finishedGoodId, lines } = body;
 
-  // BOM ID
   if (!bomId) {
     return "BOM ID is required.";
   }
@@ -108,7 +142,6 @@ function validateCreateBom(body) {
     return "BOM ID cannot be empty.";
   }
 
-  // Finished Good ID
   if (finishedGoodId === undefined || finishedGoodId === null) {
     return "Finished Good ID is required.";
   }
@@ -117,16 +150,48 @@ function validateCreateBom(body) {
     return "Finished Good ID must be an integer.";
   }
 
-  // Lines
-  const linesError = validateBomLines(lines);
+  if (!lines) {
+    return "BOM Lines are required.";
+  }
 
-  if (linesError) {
-    return linesError;
+  if (!Array.isArray(lines)) {
+    return "BOM Lines must be an array.";
+  }
+
+  if (lines.length === 0) {
+    return "At least one BOM Line is required.";
+  }
+
+  for (const line of lines) {
+    if (!line || typeof line !== "object") {
+      return "Each BOM Line must be an object.";
+    }
+
+    if (line.materialId === undefined || line.materialId === null) {
+      return "Material ID is required.";
+    }
+
+    if (!Number.isInteger(line.materialId)) {
+      return "Material ID must be an integer.";
+    }
+
+    if (
+      line.quantityRequired === undefined ||
+      line.quantityRequired === null
+    ) {
+      return "Quantity Required is required.";
+    }
+
+    if (
+      typeof line.quantityRequired !== "number" ||
+      line.quantityRequired <= 0
+    ) {
+      return "Quantity Required must be greater than 0.";
+    }
   }
 
   return null;
 }
-
 // =============================
 // Validate PUT Request
 // Only validate fields that exist
@@ -136,23 +201,57 @@ function validateUpdateBom(body) {
     return "Request body is required.";
   }
 
-  const { finishedGoodId, lines } = body;
-
-  if (finishedGoodId === undefined && lines === undefined) {
-    return "Nothing to update. Provide finishedGoodId and/or lines.";
+  if (
+    body.finishedGoodId === undefined ||
+    body.finishedGoodId === null
+  ) {
+    return "Finished Good ID is required.";
   }
 
-  if (finishedGoodId !== undefined) {
-    if (!Number.isInteger(finishedGoodId)) {
-      return "Finished Good ID must be an integer.";
+  if (!Number.isInteger(body.finishedGoodId)) {
+    return "Finished Good ID must be an integer.";
+  }
+
+  if (!body.lines) {
+    return "BOM Lines are required.";
+  }
+
+  if (!Array.isArray(body.lines)) {
+    return "BOM Lines must be an array.";
+  }
+
+  if (body.lines.length === 0) {
+    return "At least one BOM Line is required.";
+  }
+
+  for (const line of body.lines) {
+    if (!line || typeof line !== "object") {
+      return "Each BOM Line must be an object.";
     }
-  }
 
-  if (lines !== undefined) {
-    const linesError = validateBomLines(lines);
+    if (
+      line.materialId === undefined ||
+      line.materialId === null
+    ) {
+      return "Material ID is required.";
+    }
 
-    if (linesError) {
-      return linesError;
+    if (!Number.isInteger(line.materialId)) {
+      return "Material ID must be an integer.";
+    }
+
+    if (
+      line.quantityRequired === undefined ||
+      line.quantityRequired === null
+    ) {
+      return "Quantity Required is required.";
+    }
+
+    if (
+      typeof line.quantityRequired !== "number" ||
+      line.quantityRequired <= 0
+    ) {
+      return "Quantity Required must be greater than 0.";
     }
   }
 
@@ -163,4 +262,5 @@ module.exports = {
   validateBomId,
   validateCreateBom,
   validateUpdateBom,
+  validateFinishedGoodIds,
 };

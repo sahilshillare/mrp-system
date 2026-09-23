@@ -1,4 +1,4 @@
-const salesRoutes = require("./sales.routes");
+const salesRoutes = require("./routes/sales.routes");
 
 console.log("Sales module loaded");
 

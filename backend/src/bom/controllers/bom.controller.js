@@ -1,17 +1,26 @@
-const bomService = require("./bom.service");
+const bomService = require("../services/bom.service");
 
 const {
   validateBomId,
   validateCreateBom,
   validateUpdateBom,
-} = require("./bom.validation");
+  validateFinishedGoodIds,
+} = require("../bom.validation");
 
 // ======================================
 // GET ALL BOMS
 // ======================================
-async function getAllBoms(req, res) {
+async function getBomsByFinishedGoods(req, res) {
   try {
-    const boms = await bomService.getAllBoms();
+    const validationError = validateFinishedGoodIds(req.body);
+
+    if (validationError) {
+      return res.status(400).json({
+        message: validationError,
+      });
+    }
+
+    const boms = await bomService.getBomsByFinishedGoods(req.body.finishedGoodIds);
 
     return res.status(200).json(boms);
 
@@ -127,29 +136,31 @@ async function deleteBom(req, res) {
   try {
     const { id } = req.params;
 
-    const validationError = validateBomId(id);
-
-    if (validationError) {
+    if (!id || id.trim() === "") {
       return res.status(400).json({
-        message: validationError,
+        success: false,
+        message: "BOM ID is required.",
       });
     }
 
     await bomService.deleteBom(id);
 
-    return res.status(204).send();
-
+    return res.status(200).json({
+      success: true,
+      message: "BOM deleted successfully.",
+    });
   } catch (error) {
     console.error(error);
 
     return res.status(error.status || 500).json({
+      success: false,
       message: error.message || "Internal server error.",
     });
   }
 }
 
 module.exports = {
-  getAllBoms,
+  getBomsByFinishedGoods,
   getBomById,
   createBom,
   updateBom,

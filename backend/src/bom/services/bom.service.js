@@ -1,10 +1,10 @@
-const bomRepository = require("./bom.repository");
+const bomRepository = require("../repositories/bom.repository");
 
 // =============================
 // GET ALL BOMS
 // =============================
-async function getAllBoms() {
-  return bomRepository.getAllBoms();
+async function getBomsByFinishedGoods(finishedGoodIds) {
+  return bomRepository.getBomsByFinishedGoods(finishedGoodIds);
 }
 
 // =============================
@@ -29,7 +29,9 @@ async function createBom(data) {
   }
 
   // Check finished good exists
-  const finishedGood = await bomRepository.getItemById(data.finishedGoodId);
+  const finishedGood = await bomRepository.getItemById(
+    data.finishedGoodId
+  );
 
   if (!finishedGood) {
     const error = new Error("Finished good not found");
@@ -37,9 +39,27 @@ async function createBom(data) {
     throw error;
   }
 
+  // Track materials to prevent duplicate material lines
+  const materialIds = new Set();
+
   // Check every material referenced by a line exists
   for (const line of data.lines) {
-    const material = await bomRepository.getItemById(line.materialId);
+
+    // Check duplicate material
+    if (materialIds.has(line.materialId)) {
+      const error = new Error(
+        `Duplicate material in BOM: item ID ${line.materialId}`
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    materialIds.add(line.materialId);
+
+    // Check material exists
+    const material = await bomRepository.getItemById(
+      line.materialId
+    );
 
     if (!material) {
       const error = new Error(
@@ -50,61 +70,71 @@ async function createBom(data) {
     }
   }
 
+  
   return bomRepository.createBom(data);
 }
+
 
 // =============================
 // UPDATE BOM
 // =============================
 async function updateBom(id, data) {
-
-  // Check BOM exists
   const existingBom = await bomRepository.getBomById(id);
 
   if (!existingBom) {
-    const error = new Error("BOM not found");
+    const error = new Error("BOM not found.");
     error.status = 404;
     throw error;
   }
 
-  // If finishedGoodId is updated, verify it exists
-  if (data.finishedGoodId !== undefined) {
-    const finishedGood = await bomRepository.getItemById(data.finishedGoodId);
+  const finishedGood = await bomRepository.getItemById(
+    data.finishedGoodId
+  );
 
-    if (!finishedGood) {
-      const error = new Error("Finished good not found");
+  if (!finishedGood) {
+    const error = new Error(
+      `Finished good not found: item ID ${data.finishedGoodId}`
+    );
+    error.status = 404;
+    throw error;
+  }
+
+  const materialIds = new Set();
+
+  for (const line of data.lines) {
+    if (materialIds.has(line.materialId)) {
+      const error = new Error(
+        `Duplicate material in BOM: item ID ${line.materialId}`
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    materialIds.add(line.materialId);
+
+    const material = await bomRepository.getItemById(
+      line.materialId
+    );
+
+    if (!material) {
+      const error = new Error(
+        `Material not found: item ID ${line.materialId}`
+      );
       error.status = 404;
       throw error;
     }
   }
 
-  // If lines are updated, verify every material exists
-  if (data.lines !== undefined) {
-    for (const line of data.lines) {
-      const material = await bomRepository.getItemById(line.materialId);
-
-      if (!material) {
-        const error = new Error(
-          `Material not found: item ID ${line.materialId}`
-        );
-        error.status = 404;
-        throw error;
-      }
-    }
-  }
-
   return bomRepository.updateBom(id, data);
 }
-
 // =============================
 // DELETE BOM
 // =============================
 async function deleteBom(id) {
-
   const existingBom = await bomRepository.getBomById(id);
 
   if (!existingBom) {
-    const error = new Error("BOM not found");
+    const error = new Error("BOM not found.");
     error.status = 404;
     throw error;
   }
@@ -113,7 +143,7 @@ async function deleteBom(id) {
 }
 
 module.exports = {
-  getAllBoms,
+  getBomsByFinishedGoods,
   getBomById,
   createBom,
   updateBom,
